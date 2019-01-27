@@ -76,11 +76,23 @@ app.post('/register-and-broadcast-node', function (req, res) {
 
 app.post('/register-node', function (req, res) {
     // Register a node with the network
+    const newNodeUrl = req.body.newNodeUrl;
+    const nodeNotAlreadyPresent = waapcoin.networkNodes.indexOf(newNodeUrl) === -1;
+    const notCurrentNode = waapcoin.currentNodeUrl !== newNodeUrl;
+    if (nodeNotAlreadyPresent && notCurrentNode) waapcoin.networkNodes.push(newNodeUrl);
+    res.json({ note: 'New node registered successfully' });
 
 });
 
 app.post('/register-nodes-bulk', function (req, res) {
     // Register multiple nodes at once
+    const allNetworkNodes = req.body.allNetworkNodes;
+    allNetworkNodes.forEach(networkNodeUrl => {
+        const nodeNotAlreadyPresent = waapcoin.networkNodes.indexOf(networkNodeUrl) === -1;
+        const notCurrentNode = waapcoin.currentNodeUrl !== networkNodeUrl;
+        if (nodeNotAlreadyPresent && notCurrentNode) waapcoin.networkNodes.push(networkNodeUrl);
+    });
+    res.json({ note: 'Bulk registration successful.'});
 });
 
 
