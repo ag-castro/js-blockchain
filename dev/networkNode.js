@@ -52,12 +52,37 @@ app.get('/mine', function (req, res) {
     };
     const nonce = waapcoin.proofOfWork(previousBlockHash, currentBlockData);
     const blockHash = waapcoin.hashBlock(previousBlockHash, currentBlockData, nonce);
-    waapcoin.createNewTransaction(12.5, "00", nodeAddress);
     const newBlock = waapcoin.createNewBlock(nonce, previousBlockHash, blockHash);
-    res.json({
-        note: "New block mined successfully.",
-        block: newBlock,
+    const requestPromises = [];
+    waapcoin.networkNodes.forEach(networkNodeUrl => {
+        const requestOptions = {
+            uri: networkNodeUrl + '/receive-new-block',
+            method: 'POST',
+            body: { newBlock: newBlock },
+            json: true
+        };
+        requestPromises.push(rp(requestOptions));
     });
+    Promise.all(requestPromises)
+        .then(data => {
+            const requestOptions = {
+                uri: waapcoin.currentNodeUrl + '/transaction/broadcast',
+                method: 'POST',
+                body: {
+                    amount: 12.5,
+                    sender: "00",
+                    recipient: nodeAddress
+                },
+                json: true
+            };
+            return rp(requestOptions);
+        })
+        .then(data => {
+            res.json({
+                note: "New block mined successfully.",
+                block: newBlock,
+            });
+        });
 });
 
 app.post('/register-and-broadcast-node', function (req, res) {
