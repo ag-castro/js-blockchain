@@ -3,7 +3,6 @@ const bodyParser = require('body-parser');
 const Blockchain = require('./blockchain');
 const uuid = require('uuid/v1');
 const rp = require('request-promise');
-
 const port = process.argv[2];
 const app = express();
 const waapcoin = new Blockchain();
@@ -18,10 +17,30 @@ app.get('/blockchain', function (req, res) {
 });
 
 app.post('/transaction', function (req, res) {
-    const blockIndex = waapcoin.createNewTransaction(
+    const newTransaction = req.body;
+    const blockIndex = waapcoin.addTransactionToPendingTransactions(newTransaction);
+    res.json({ note: `Transaction will be added in the block ${blockIndex}.` });
+});
+
+app.post('/transaction/broadcast', function (req, res) {
+    const newTransaction = waapcoin.createNewTransaction(
         req.body.amount, req.body.sender, req.body.recipient
     );
-    res.json({note: `Transaction will be added in block ${blockIndex}.`});
+    waapcoin.addTransactionToPendingTransactions(newTransaction);
+    const requestPromises = [];
+    waapcoin.networkNodes.forEach(networkNodeUrl => {
+        const requestOptions = {
+            uri: networkNodeUrl + '/transaction',
+            method: 'POST',
+            body: newTransaction,
+            json: true
+        };
+        requestPromises.push(rp(requestOptions));
+    });
+    Promise.all(requestPromises)
+        .then(data => {
+           res.json({ note: 'Transaction created and broadcast successfully.' });
+        });
 });
 
 app.get('/mine', function (req, res) {
@@ -47,7 +66,6 @@ app.post('/register-and-broadcast-node', function (req, res) {
     if (waapcoin.networkNodes.indexOf(newNodeUrl) === -1) waapcoin.networkNodes.push(newNodeUrl);
     const regNodesPromises = [];
     waapcoin.networkNodes.forEach(networkNodeUrl => {
-        // '/register-node'
         const requestOptions = {
             uri: networkNodeUrl + '/register-node',
             method: 'POST',
@@ -81,7 +99,6 @@ app.post('/register-node', function (req, res) {
     const notCurrentNode = waapcoin.currentNodeUrl !== newNodeUrl;
     if (nodeNotAlreadyPresent && notCurrentNode) waapcoin.networkNodes.push(newNodeUrl);
     res.json({ note: 'New node registered successfully' });
-
 });
 
 app.post('/register-nodes-bulk', function (req, res) {
