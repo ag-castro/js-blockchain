@@ -1,6 +1,7 @@
 js-blockchain
 #### **A Blockchain API - JS Implementation**
 
+Decentralized blockchain network
 
 Endpoints:
   * /blockchain
@@ -17,3 +18,6 @@ Explorer Endpoints:
   * /block/:blockHash
   * /transaction/:transactionId
   * /address/:address
+  
+Explorer UI:
+  * /block-explorer 
