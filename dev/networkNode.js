@@ -79,10 +79,30 @@ app.get('/mine', function (req, res) {
         })
         .then(data => {
             res.json({
-                note: "New block mined successfully.",
+                note: "New block mined & broadcast successfully.",
                 block: newBlock,
             });
         });
+});
+
+app.post('/receive-new-block', function (req, res) {
+    const newBlock = req.body.newBlock;
+    const lastBlock = waapcoin.getLastBlock();
+    const correctHash = lastBlock.hash === newBlock.previousBlockHash;
+    const correctIndex = lastBlock['index'] + 1 === newBlock['index'];
+    if (correctHash && correctIndex) {
+        waapcoin.chain.push(newBlock);
+        waapcoin.pendingTransactions = [];
+        res.json({
+            note: 'New Block received and accepted.',
+            newBlock: newBlock
+        });
+    } else {
+        res.json({
+            note: 'The New block was rejected.',
+            newBlock: newBlock
+        });
+    }
 });
 
 app.post('/register-and-broadcast-node', function (req, res) {
